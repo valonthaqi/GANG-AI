@@ -14,12 +14,10 @@ type Conversation = {
 export default function Sidebar() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  useEffect(() => {
-    const loadConvos = async () => {
+  const loadConvos = async () => {
       const supabase = createClientComponentClient();
       const {
         data: { user },
-        error,
       } = await supabase.auth.getUser();
 
       console.log("👤 user:", user);
@@ -34,9 +32,13 @@ export default function Sidebar() {
       } catch (err) {
         console.error("❌ Failed to fetch conversations:", err);
       }
-    };
+  };
 
+  useEffect(() => {
     loadConvos();
+    const handler = () => loadConvos();
+    window.addEventListener("refresh-convos", handler);
+    return () => window.removeEventListener("refresh-convos", handler);
   }, []);
   
   
