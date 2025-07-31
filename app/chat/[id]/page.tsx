@@ -42,7 +42,10 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim()) return;
     const userContent = input;
-    const newMessages = [...messages, { role: "user", content: userContent }];
+    const newMessages: { role: "user" | "assistant"; content: string }[] = [
+      ...messages,
+      { role: "user", content: userContent },
+    ];
     setMessages(newMessages);
     setInput("");
 
