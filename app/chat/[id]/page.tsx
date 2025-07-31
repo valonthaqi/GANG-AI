@@ -1,34 +1,36 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { createConversation, fetchConversations } from "@/app/utils/supabase/conversations";
-import { saveMessage } from "@/app/utils/supabase/messages";
+import { fetchMessages, saveMessage, MessageRecord } from "@/app/utils/supabase/messages";
 
-export default function DashboardPage() {
+export default function ChatPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const conversationId = params.id;
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const load = async () => {
       const { data } = await supabase.auth.getSession();
-      const session = data.session;
-      if (!session) {
+      if (!data.session) {
         router.push("/auth/login");
-      } else {
-        setLoading(false);
+        return;
       }
+      try {
+        const dataMessages = await fetchMessages(conversationId);
+        setMessages(dataMessages.map((m: MessageRecord) => ({ role: m.role, content: m.content })));
+      } catch (err) {
+        console.error("Failed to fetch messages", err);
+      }
+      setLoading(false);
     };
-
-    checkAuth();
-  }, [router]);
+    load();
+  }, [router, conversationId]);
 
   const handleInput = () => {
     if (textareaRef.current) {
@@ -39,33 +41,13 @@ export default function DashboardPage() {
 
   const sendMessage = async () => {
     if (!input.trim()) return;
-
-    let convoId = conversationId;
-    if (!convoId) {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      if (!user) return;
-      try {
-        const existing = await fetchConversations(user.id);
-        const convo = await createConversation(`Convo ${existing.length + 1}`);
-        convoId = convo.id;
-        setConversationId(convoId);
-        window.dispatchEvent(new Event("refresh-convos"));
-      } catch (err) {
-        console.error("Failed to create conversation", err);
-        return;
-      }
-    }
-
-    const newMessages: { role: "user" | "assistant"; content: string }[] = [
-      ...messages,
-      { role: "user", content: input },
-    ];
+    const userContent = input;
+    const newMessages = [...messages, { role: "user", content: userContent }];
     setMessages(newMessages);
     setInput("");
 
     try {
-      await saveMessage({ conversation_id: convoId, role: "user", content: input });
+      await saveMessage({ conversation_id: conversationId, role: "user", content: userContent });
     } catch (err) {
       console.error("Failed to save user message", err);
     }
@@ -76,19 +58,15 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages }),
       });
-
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
-      try {
-        await saveMessage({ conversation_id: convoId, role: "assistant", content: data.message });
-      } catch (err) {
-        console.error("Failed to save AI message", err);
-      }
+      const aiMsg = data.message;
+      setMessages((prev) => [...prev, { role: "assistant", content: aiMsg }]);
+      await saveMessage({ conversation_id: conversationId, role: "assistant", content: aiMsg });
     } catch {
       const errorMsg = "⚠️ Failed to fetch AI response.";
       setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
       try {
-        await saveMessage({ conversation_id: convoId, role: "assistant", content: errorMsg });
+        await saveMessage({ conversation_id: conversationId, role: "assistant", content: errorMsg });
       } catch {
         // ignore
       }
@@ -96,35 +74,25 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="text-center mt-20 text-gray-500">
-        Checking authentication...
-      </div>
-    );
+    return <div className="text-center mt-20 text-gray-500">Loading...</div>;
   }
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 py-10">
-      <h1 className="text-2xl text-black font-semibold mb-6">
-        What can I help with?
-      </h1>
-
+      <h1 className="text-2xl text-black font-semibold mb-6">Your conversation</h1>
       <div className="w-full max-w-3xl flex flex-col h-[75vh] text-black">
         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
           {messages.map((msg, idx) => (
             <div
               key={idx}
               className={`p-3 rounded-xl max-w-xl whitespace-pre-wrap ${
-                msg.role === "user"
-                  ? "bg-gray-200 text-right ml-auto"
-                  : "bg-gray-100 text-left mr-auto"
+                msg.role === "user" ? "bg-gray-200 text-right ml-auto" : "bg-gray-100 text-left mr-auto"
               }`}
             >
               {msg.content}
             </div>
           ))}
         </div>
-
         <div className="mt-4 flex items-end gap-2 bg-white rounded-xl border border-gray-300 shadow px-4 py-3">
           <textarea
             ref={textareaRef}
@@ -149,13 +117,6 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-
-      <p className="text-xs text-gray-400 text-center mt-6 max-w-md">
-        You’ve hit the Free plan limit for The Gang AI. Subscribe to Pro plan to
-        increase limits.
-        <br />
-        AI can make mistakes. Please double-check responses.
-      </p>
     </div>
   );
 }
