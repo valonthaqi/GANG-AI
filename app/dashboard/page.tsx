@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { createConversation, fetchConversations } from "@/app/utils/supabase/conversations";
-import { saveMessage } from "@/app/utils/supabase/messages";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -13,7 +11,6 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -40,42 +37,12 @@ export default function DashboardPage() {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    let convoId = conversationId;
-    if (!convoId) {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      if (!user) return;
-      try {
-        const existing = await fetchConversations(user.id);
-        const convo = await createConversation(`Convo ${existing.length + 1}`);
-        convoId = convo.id;
-        setConversationId(convoId);
-        window.dispatchEvent(new Event("refresh-convos"));
-      } catch (err) {
-        console.error("Failed to create conversation", err);
-        return;
-      }
-    }
-
     const newMessages: { role: "user" | "assistant"; content: string }[] = [
       ...messages,
       { role: "user", content: input },
-    ];
+    ];      
     setMessages(newMessages);
     setInput("");
-
-    try {
-        if (!convoId) return; // extra safety check
-
-        await saveMessage({
-          conversation_id: convoId as string, // ⬅️ force it to be string after check
-          role: "user",
-          content: input,
-        });
-        
-    } catch (err) {
-      console.error("Failed to save user message", err);
-    }
 
     try {
       const res = await fetch("/api/ai/assistant", {
@@ -85,31 +52,17 @@ export default function DashboardPage() {
       });
 
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
-      try {
-        await saveMessage({
-          conversation_id: convoId as string,
-          role: "assistant",
-          content: data.message,
-        });
-          
-      } catch (err) {
-        console.error("Failed to save AI message", err);
-      }
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.message },
+      ]);
     } catch {
-      const errorMsg = "⚠️ Failed to fetch AI response.";
-      setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
-        try
-        {
-            await saveMessage({
-              conversation_id: convoId as string,
-              role: "assistant",
-              content: errorMsg,
-            });
-      } catch {
-        // ignore
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: '⚠️ Failed to fetch AI response.' }
+        ])
       }
-    }
   };
 
   if (loading) {

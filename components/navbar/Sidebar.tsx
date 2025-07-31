@@ -1,84 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Home } from "lucide-react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { fetchConversations } from "../../app/utils/supabase/conversations";
-
-type Conversation = {
-  id: string;
-  title: string;
-};
 
 export default function Sidebar() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-
-  const loadConvos = async () => {
-      const supabase = createClientComponentClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      console.log("👤 user:", user);
-      if (!user?.id) {
-        console.warn("⚠️ No user ID");
-        return;
-      }
-
-      try {
-        const data = await fetchConversations(user.id);
-        setConversations(data);
-      } catch (err) {
-        console.error("❌ Failed to fetch conversations:", err);
-      }
-  };
-
-  useEffect(() => {
-    loadConvos();
-    const handler = () => loadConvos();
-    window.addEventListener("refresh-convos", handler);
-    return () => window.removeEventListener("refresh-convos", handler);
-  }, []);
-  
-  
-
   return (
-    <div className="h-screen w-60 bg-[#f5f5f5] border-r flex flex-col justify-between py-6 px-4">
-      {/* Top logo/avatar */}
-      <div className="w-12 h-12 rounded-full bg-gray-300 mb-6" />
+    <div className="h-screen w-20 bg-[#f5f5f5] border-r flex flex-col items-center justify-between py-6">
+      {/* Top Logo or Avatar */}
+      <div className="w-10 h-10 rounded-full bg-gray-300" />
 
-      {/* Navigation */}
-      <nav className="flex flex-col gap-3 text-sm text-gray-700">
+      {/* Nav items */}
+      <nav className="flex flex-col items-center gap-6 text-sm text-gray-700">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 hover:text-black"
+          className="flex flex-col items-center hover:text-black"
         >
-          <Home size={20} />
-          <span>Home</span>
+          <Home size={22} />
+          <span className="text-xs mt-1">Home</span>
         </Link>
-
-        <div className="mt-4 text-xs uppercase tracking-wide text-gray-500">
-          Your Conversations
-        </div>
-        {conversations.length > 0 ? (
-          conversations.map((c) => (
-            <Link
-              key={c.id}
-              href={`/chat/${c.id}`}
-              className="text-gray-700 hover:text-black text-sm truncate"
-            >
-              {c.title}
-            </Link>
-          ))
-        ) : (
-          <span className="text-xs text-gray-400">No conversations</span>
-        )}
       </nav>
 
-      {/* Bottom corner */}
-      <div className="text-xs text-gray-400 text-center">© 2025</div>
-      </div>
-      
+      {/* Optional bottom icons */}
+      <div className="text-xs text-gray-400">N</div>
+    </div>
   );
 }
