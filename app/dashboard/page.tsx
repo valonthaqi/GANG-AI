@@ -65,7 +65,14 @@ export default function DashboardPage() {
     setInput("");
 
     try {
-      await saveMessage({ conversation_id: convoId, role: "user", content: input });
+        if (!convoId) return; // extra safety check
+
+        await saveMessage({
+          conversation_id: convoId as string, // ⬅️ force it to be string after check
+          role: "user",
+          content: input,
+        });
+        
     } catch (err) {
       console.error("Failed to save user message", err);
     }
@@ -80,15 +87,25 @@ export default function DashboardPage() {
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
       try {
-        await saveMessage({ conversation_id: convoId, role: "assistant", content: data.message });
+        await saveMessage({
+          conversation_id: convoId as string,
+          role: "assistant",
+          content: data.message,
+        });
+          
       } catch (err) {
         console.error("Failed to save AI message", err);
       }
     } catch {
       const errorMsg = "⚠️ Failed to fetch AI response.";
       setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
-      try {
-        await saveMessage({ conversation_id: convoId, role: "assistant", content: errorMsg });
+        try
+        {
+            await saveMessage({
+              conversation_id: convoId as string,
+              role: "assistant",
+              content: errorMsg,
+            });
       } catch {
         // ignore
       }
