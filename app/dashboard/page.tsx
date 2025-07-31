@@ -3,6 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { createConversation } from "@/app/utils/supabase/conversations";
+import { saveMessage } from "@/app/utils/supabase/messages";
+import { useSearchParams } from "next/navigation";
+import { useSidebarRefresh } from "../context/SidebarRefreshContext";
+
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -11,21 +17,50 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>( null );
+    const [ conversationId, setConversationId ] = useState<string | null>( null );
+    const searchParams = useSearchParams();
+    const selectedConvoId = searchParams.get( "conversationId" );
+    const { triggerSidebarRefresh } = useSidebarRefresh();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
-      if (!session) {
-        router.push("/auth/login");
-      } else {
+    
+
+
+    useEffect(() => {
+      const loadDashboard = async () => {
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
+
+        if (!session) {
+          router.push("/auth/login");
+          return;
+        }
+
+        if (selectedConvoId) {
+          const { data } = await supabase
+            .from("messages")
+            .select("role, content")
+            .eq("conversation_id", selectedConvoId)
+            .order("created_at", { ascending: true });
+
+          if (data) {
+            setConversationId(selectedConvoId);
+            setMessages(
+              data as { role: "user" | "assistant"; content: string }[]
+            );
+          }
+        } else {
+          // Clear convo + messages for new chat
+          setConversationId(null);
+          setMessages([]);
+        }
+
         setLoading(false);
-      }
-    };
+      };
 
-    checkAuth();
-  }, [router]);
+      loadDashboard();
+    }, [router, selectedConvoId]);
+      
 
   const handleInput = () => {
     if (textareaRef.current) {
@@ -40,11 +75,47 @@ export default function DashboardPage() {
     const newMessages: { role: "user" | "assistant"; content: string }[] = [
       ...messages,
       { role: "user", content: input },
-    ];      
+    ];
     setMessages(newMessages);
     setInput("");
 
     try {
+      // Create conversation if not exists
+      let currentConversationId = conversationId;
+
+      if (!currentConversationId) {
+        // Ask AI for a title based on the user's first input
+        const titlePrompt = `Create a short, clear chat title (max 6 words) based on this question:\n"${input}"`;
+
+        const titleResponse = await fetch("/api/ai/assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: titlePrompt }],
+          }),
+        });
+
+        const titleData = await titleResponse.json();
+        const aiTitle = titleData.message.trim().replace(/[.?!]$/, ""); // remove ending punctuation
+
+        // Create conversation with AI-generated title
+        const convo = await createConversation(aiTitle);
+        currentConversationId = convo.id;
+        setConversationId(currentConversationId);
+        triggerSidebarRefresh();
+      }
+      
+
+      // ✅ TypeScript-safe guard clause
+      if (!currentConversationId) {
+        console.error("❌ conversationId is still null");
+        return;
+      }
+
+      // Save user message
+      await saveMessage(currentConversationId, "user", input);
+
+      // Fetch assistant response
       const res = await fetch("/api/ai/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,18 +123,30 @@ export default function DashboardPage() {
       });
 
       const data = await res.json();
+      const aiReply = data.message;
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.message },
-      ]);
-    } catch {
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: '⚠️ Failed to fetch AI response.' }
-        ])
+      const updatedMessages: { role: "user" | "assistant"; content: string }[] =
+        [...newMessages, { role: "assistant", content: aiReply }];
+      setMessages(updatedMessages);
+
+      // Save assistant message
+      await saveMessage(currentConversationId, "assistant", aiReply);
+    } catch (error) {
+        console.error("❌ AI request failed:", error);
+      
+        const failMessage: { role: "user" | "assistant"; content: string } = {
+          role: "assistant",
+          content: "⚠️ Failed to fetch AI response.",
+        };
+      
+        setMessages((prev) => [...prev, failMessage]);
+      
+        if (conversationId) {
+          await saveMessage(conversationId, "assistant", failMessage.content);
+        }
       }
   };
+  
 
   if (loading) {
     return (
