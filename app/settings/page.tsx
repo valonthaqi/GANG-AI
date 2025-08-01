@@ -1,138 +1,233 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 export default function SettingsPage() {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+
+  const [fullName, setFullName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [gender, setGender] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+
+  type Profile = {
+    full_name: string | null;
+    nickname: string | null;
+    gender: string | null;
+    avatar_url: string | null;
+  };
+
+  const [originalData, setOriginalData] = useState<Profile | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error || !session?.user) {
+        console.error("No session found:", error);
+        return;
+      }
+
+      const uid = session.user.id;
+      setUserId(uid);
+      setEmail(session.user.email || "");
+
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Failed to load profile:", profileError);
+      } else if (data) {
+        setFullName(data.full_name || "");
+        setNickname(data.nickname || "");
+        setGender(data.gender || "");
+        setAvatarUrl(data.avatar_url || "");
+        setOriginalData({
+          full_name: data.full_name,
+          nickname: data.nickname,
+          gender: data.gender,
+          avatar_url: data.avatar_url,
+        });
+      }
+
+      setInitialLoading(false);
+    };
+
+    fetchSession();
+  }, []);
+
+  useEffect(() => {
+    if (!originalData) return;
+    const changed =
+      fullName !== originalData.full_name ||
+      nickname !== originalData.nickname ||
+      gender !== originalData.gender ||
+      avatarUrl !== originalData.avatar_url ||
+      imageFile !== null;
+    setHasChanges(changed);
+  }, [fullName, nickname, gender, avatarUrl, imageFile, originalData]);
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadAvatar = async (): Promise<string | null> => {
+    if (!userId || !imageFile) return null;
+
+    const fileExt = imageFile.name.split(".").pop();
+    const filePath = `avatars/${userId}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, imageFile, { upsert: true });
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      return null;
+    }
+
+    const publicUrl = supabase.storage.from("avatars").getPublicUrl(filePath)
+      .data.publicUrl;
+    return publicUrl;
+  };
+
+  const handleSave = async () => {
+    if (!userId) return;
+
+    setLoading(true);
+
+    let imageUrl = avatarUrl;
+    if (imageFile) {
+      const uploadedUrl = await uploadAvatar();
+      if (uploadedUrl) imageUrl = uploadedUrl;
+    }
+
+    const { error } = await supabase.from("profiles").upsert({
+      id: userId,
+      full_name: fullName,
+      nickname,
+      gender,
+      avatar_url: imageUrl,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      console.error("Error saving profile:", error.message);
+    } else {
+      setAvatarUrl(imageUrl);
+      setOriginalData({
+        full_name: fullName,
+        nickname,
+        gender,
+        avatar_url: imageUrl,
+      });
+      setShowSuccess(true);
+      setHasChanges(false);
+      setImageFile(null);
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-gray-500 animate-pulse text-lg">
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 text-black">
-      {/* Top profile section */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <Image
-            src="/avatar.jpg"
-            alt="User"
-            width={64}
-            height={64}
-            className="rounded-full object-cover"
-          />
-          <div>
-            <h2 className="text-lg font-semibold">Alexa Rawles</h2>
-            <p className="">alexarawles@gmail.com</p>
+    <div className="max-w-xl mx-auto space-y-6 relative">
+      <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="space-y-4">
+        <div>
+          <label>Email</label>
+          <Input value={email} disabled />
+        </div>
+        <div>
+          <label>Profile Image</label>
+          <div className="flex items-center gap-4 cursor-pointer">
+            {previewUrl || avatarUrl ? (
+              <Image
+                src={previewUrl || avatarUrl}
+                alt="Avatar"
+                width={64}
+                height={64}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gray-200 cursor-pointer" />
+            )}
+            <input
+              type="file"
+              className="cursor-pointer"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
           </div>
         </div>
-        <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
-          Edit
-        </button>
-      </div>
-
-      {/* Form fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         <div>
-          <label className="text-sm font-medium text-gray-600">Full Name</label>
-          <input
-            className="w-full mt-1 px-4 py-2 border rounded-md text-sm"
-            placeholder="Your Full Name"
+          <label>Full Name</label>
+          <Input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-600">Nick Name</label>
-          <input
-            className="w-full mt-1 px-4 py-2 border rounded-md text-sm"
-            placeholder="Your Nick Name"
+          <label>Nickname</label>
+          <Input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
           />
         </div>
-
         <div>
-          <label className="text-sm font-medium text-gray-600">Gender</label>
-          <select className="w-full mt-1 px-4 py-2 border rounded-md text-sm">
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
+          <label>Gender</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
           </select>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-gray-600">Email</label>
-          <input
-            type="email"
-            className="w-full mt-1 px-4 py-2 border rounded-md text-sm"
-            placeholder="Your Email"
-            defaultValue="alexarawles@gmail.com"
-          />
-        </div>
+        <Button onClick={handleSave} disabled={loading || !hasChanges}>
+          {loading ? "Saving..." : "Save Settings"}
+        </Button>
 
-        <div>
-          <label className="text-sm font-medium text-gray-600">
-            Subscription Status
-          </label>
-          <input
-            className="w-full mt-1 px-4 py-2 border rounded-md text-sm bg-gray-100"
-            disabled
-            value="Free Tier"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-gray-600">
-            Account Verified
-          </label>
-          <input
-            className="w-full mt-1 px-4 py-2 border rounded-md text-sm bg-gray-100"
-            disabled
-            value="Yes"
-          />
-        </div>
-      </div>
-
-      {/* Password actions */}
-      <div className="mt-8 flex flex-col md:flex-row gap-4">
-        <button className="bg-gray-200 hover:bg-gray-300 text-black px-4 py-2 rounded-md text-sm">
-          Reset Password
-        </button>
-        <button className="bg-gray-200 hover:bg-gray-300 text-black px-4 py-2 rounded-md text-sm">
-          Change Password
-        </button>
-      </div>
-
-      {/* Prompt usage */}
-      <div className="mt-10">
-        <h3 className="text-md font-semibold mb-1">Prompt Usage Counter</h3>
-        <p className="text-sm text-gray-600">
-          Prompts used today:{" "}
-          <span className="font-medium text-black">7/10</span>
-        </p>
-      </div>
-
-      {/* Delete account */}
-      <div className="mt-10">
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="text-red-600 hover:underline text-sm font-medium"
-        >
-          Want to delete your account?
-        </button>
-
-        {showDeleteConfirm && (
-          <div className="mt-4 border border-red-300 p-4 rounded-md bg-red-50">
-            <p className="text-sm text-red-700 mb-3">
-              Are you sure you want to delete your account? This action is
-              irreversible.
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="text-gray-600 px-3 py-1 border rounded-md text-sm"
-              >
-                Cancel
-              </button>
-              <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">
-                Yes, Delete
-              </button>
-            </div>
-          </div>
+        {showSuccess && (
+          <p className="text-green-600 text-sm mt-2 animate-fade-in">
+            ✅ Settings saved successfully.
+          </p>
         )}
       </div>
     </div>

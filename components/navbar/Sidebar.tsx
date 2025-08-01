@@ -37,7 +37,7 @@ export default function Sidebar({ refreshSignal }: Props) {
 
   useEffect(() => {
     if (refreshSignal) {
-      loadConvos(); // refresh if new convo created
+      loadConvos(); 
     }
   }, [refreshSignal]);
 
@@ -46,7 +46,7 @@ export default function Sidebar({ refreshSignal }: Props) {
       <div className="flex flex-col items-center gap-6 w-full">
         <button
           onClick={() => {
-            router.push("/dashboard"); // start new chat
+            router.push("/dashboard"); 
           }}
           className="hover:text-black text-gray-700"
           title="New Chat"

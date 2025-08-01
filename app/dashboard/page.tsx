@@ -21,7 +21,9 @@ export default function DashboardPage() {
     const [ conversationId, setConversationId ] = useState<string | null>( null );
     const searchParams = useSearchParams();
     const selectedConvoId = searchParams.get( "conversationId" );
-    const { triggerSidebarRefresh } = useSidebarRefresh();
+  const { triggerSidebarRefresh } = useSidebarRefresh();
+  const [nickname, setNickname] = useState("");
+
 
     
 
@@ -35,6 +37,16 @@ export default function DashboardPage() {
           router.push("/auth/login");
           return;
         }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("nickname")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profile?.nickname) {
+          setNickname(profile.nickname);
+        }
+
 
         if (selectedConvoId) {
           const { data } = await supabase
@@ -159,7 +171,9 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 py-10">
       <h1 className="text-2xl text-black font-semibold mb-6">
-        What can I help with?
+        {nickname
+          ? `Hi ${nickname}, what can I help you with?`
+          : "What can I help with?"}
       </h1>
 
       <div className="w-full max-w-3xl flex flex-col h-[75vh] text-black">

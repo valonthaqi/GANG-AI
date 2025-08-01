@@ -1,8 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+"use client";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321";
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "public-anon-key";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+// import type { Database } from "@/types/supabase"; // optional typing
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// If you're using custom types:
+// export const supabase = createClientComponentClient<Database>();
+
+// If not using custom types, just use this:
+export const supabase = createClientComponentClient();
