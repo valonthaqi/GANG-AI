@@ -54,20 +54,21 @@ export default function SettingsPage() {
         .eq("id", uid)
         .maybeSingle();
 
-      if (profileError) {
-        console.error("Failed to load profile:", profileError);
-      } else if (data) {
-        setFullName(data.full_name || "");
-        setNickname(data.nickname || "");
-        setGender(data.gender || "");
-        setAvatarUrl(data.avatar_url || "");
+        if (profileError) {
+          console.error("Failed to load profile:", profileError);
+        }
+
+        setFullName(data?.full_name || "");
+        setNickname(data?.nickname || "");
+        setGender(data?.gender || "");
+        setAvatarUrl(data?.avatar_url || "");
+
         setOriginalData({
-          full_name: data.full_name,
-          nickname: data.nickname,
-          gender: data.gender,
-          avatar_url: data.avatar_url,
-        });
-      }
+          full_name: data?.full_name || "",
+          nickname: data?.nickname || "",
+          gender: data?.gender || "",
+          avatar_url: data?.avatar_url || "",
+        });        
 
       setInitialLoading(false);
     };
