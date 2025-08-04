@@ -19,7 +19,7 @@ export async function createConversation(title?: string) {
     .from("conversations")
     .insert({ user_id: user.id, title: name })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

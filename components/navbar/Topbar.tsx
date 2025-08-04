@@ -28,7 +28,7 @@ export default function Topbar() {
         .from("profiles")
         .select("avatar_url")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) console.error("Failed to fetch avatar:", error.message);
 

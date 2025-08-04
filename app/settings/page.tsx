@@ -81,7 +81,6 @@ export default function SettingsPage() {
       fullName !== originalData.full_name ||
       nickname !== originalData.nickname ||
       gender !== originalData.gender ||
-      avatarUrl !== originalData.avatar_url ||
       imageFile !== null;
     setHasChanges(changed);
   }, [fullName, nickname, gender, avatarUrl, imageFile, originalData]);
@@ -178,7 +177,8 @@ export default function SettingsPage() {
                 src={previewUrl || avatarUrl}
                 alt="Avatar"
                 width={64}
-                height={64}
+                height={ 64 }
+                priority
                 className="rounded-full object-cover"
               />
             ) : (
