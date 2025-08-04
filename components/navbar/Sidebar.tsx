@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Home, MessageSquare, Trash2, Pencil } from "lucide-react";
 import { fetchConversations, deleteConversation, updateConversationTitle } from "@/app/utils/supabase/conversations"; 
+import Image from "next/image";
 
 
 
@@ -46,7 +47,7 @@ export default function Sidebar({ refreshSignal }: Props) {
       <div className="flex flex-col items-center gap-6 w-full">
         <button
           onClick={() => {
-            router.push("/dashboard"); 
+            router.push("/dashboard");
           }}
           className="hover:text-black text-gray-700"
           title="New Chat"
@@ -176,6 +177,21 @@ export default function Sidebar({ refreshSignal }: Props) {
             ))}
           </div>
         )}
+      </div>
+      <div className="mt-auto pt-6">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="hover:opacity-80 transition"
+          title="Homepage"
+        >
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={ 32 }
+            height={ 32 }
+            className="w-8 h-8 object-contain rounded-4xl"
+          ></Image>
+        </button>
       </div>
     </div>
   );
