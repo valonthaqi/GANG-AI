@@ -68,15 +68,25 @@ export default function BoardView({ tasks, setTasks }: BoardViewProps) {
     // Update status in Supabase
     await supabase
       .from("todo_tasks")
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+        completion: newStatus === "done" ? 100 : undefined,
+      })
       .eq("id", taskId);
+
 
     // Update local state instantly
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t
+        t.id === taskId
+          ? {
+              ...t,
+              status: newStatus as Task["status"],
+              completion: newStatus === "done" ? 100 : t.completion,
+            }
+          : t
       )
-    );
+    );      
   };
 
   return (

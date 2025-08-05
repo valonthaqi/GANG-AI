@@ -67,11 +67,101 @@ export default function TaskCard({ task, onEdit, onDelete, dragProps }: Props) {
       {/* Due Date + Completion */}
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-1 text-gray-500 text-xs">
-          📅
           <span>
-            {task.due_date
-              ? new Date(task.due_date).toLocaleDateString()
-              : "No due date"}
+            {task.due_date ? (
+              <div className="flex items-center gap-1">
+                📅
+                <span>{new Date(task.due_date).toLocaleDateString()}</span>
+                {(() => {
+                  const today = new Date();
+                  const due = new Date(task.due_date);
+
+                  const todayStr = today.toISOString().split("T")[0];
+                  const dueStr = due.toISOString().split("T")[0];
+
+                  const msInDay = 1000 * 60 * 60 * 24;
+                  const daysDiff = Math.floor(
+                    (due.getTime() - today.getTime()) / msInDay
+                  );
+
+                  const sameDay = dueStr === todayStr;
+                  const isOverdue = dueStr < todayStr;
+                  const isTomorrow = daysDiff === 1;
+                  const isThisWeek = daysDiff > 1 && daysDiff <= 7;
+
+                  const isThisMonth =
+                    due.getMonth() === today.getMonth() &&
+                    due.getFullYear() === today.getFullYear();
+
+                  const isNextMonth =
+                    due.getMonth() === (today.getMonth() + 1) % 12 &&
+                    (due.getFullYear() === today.getFullYear() ||
+                      (today.getMonth() === 11 &&
+                        due.getFullYear() === today.getFullYear() + 1));
+
+                  if (isOverdue) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-red-700 bg-red-200 px-2 py-0.5 rounded-full">
+                        Overdue
+                      </span>
+                    );
+                  }
+
+                  if (sameDay) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded-full">
+                        Due Today
+                      </span>
+                    );
+                  }
+
+                  if (isTomorrow) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-green-700 bg-green-200 px-2 py-0.5 rounded-full">
+                        Due Tomorrow
+                      </span>
+                    );
+                  }
+
+                  if (isThisWeek) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">
+                        Due This Week
+                      </span>
+                    );
+                  }
+
+                  if (isThisMonth) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-purple-700 bg-purple-200 px-2 py-0.5 rounded-full">
+                        Due This Month
+                      </span>
+                    );
+                  }
+
+                  if (isNextMonth) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-indigo-700 bg-indigo-200 px-2 py-0.5 rounded-full">
+                        Due Next Month
+                      </span>
+                    );
+                  }
+                                  
+                  const isFuture = !isThisMonth && !isNextMonth && due > today;
+                    if (isFuture) {
+                        return (
+                        <span className="ml-2 text-[10px] font-semibold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">
+                            Future Due
+                        </span>
+                        );
+                    }
+
+                  return null;
+                })()}
+              </div>
+            ) : (
+              "No due date"
+            )}
           </span>
         </div>
 
