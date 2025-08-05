@@ -1,4 +1,5 @@
 import type { Task } from "../types";
+import DescriptionModal from "./DescriptionModal";
 import { GripVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -13,6 +14,7 @@ type Props = {
 export default function TaskCard({ task, onEdit, onDelete, dragProps }: Props) {
   const supabase = createClientComponentClient();
   const [fullName, setFullName] = useState("User");
+  const [showDescModal, setShowDescModal] = useState(false);
 
   useEffect(() => {
     const fetchName = async () => {
@@ -103,9 +105,21 @@ export default function TaskCard({ task, onEdit, onDelete, dragProps }: Props) {
 
       {/* Description */}
       {task.description && (
-        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-          {task.description}
-        </p>
+        <>
+          <p
+            className="text-xs text-gray-500 mb-2 line-clamp-2 cursor-pointer hover:underline"
+            onClick={() => setShowDescModal(true)}
+          >
+            {task.description}
+          </p>
+
+          <DescriptionModal
+            open={showDescModal}
+            onClose={() => setShowDescModal(false)}
+            title={task.title}
+            description={task.description}
+          />
+        </>
       )}
 
       {/* Due Date + Completion */}
