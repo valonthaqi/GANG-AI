@@ -8,4 +8,5 @@ export type Task = {
   completion: number;
   category?: string;
   created_at: string;
+  recurring_days?: string[];
 };

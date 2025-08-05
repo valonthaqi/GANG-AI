@@ -28,7 +28,14 @@ export default function AddTaskModal({
   const [status, setStatus] = useState(defaultStatus);
   const [completion, setCompletion] = useState(0);
   const [dueDate, setDueDate] = useState("");
-  const [category, setCategory] = useState("");
+  const [ category, setCategory ] = useState( "" );
+  const [recurringDays, setRecurringDays] = useState<string[]>([]);
+  const toggleDay = (day: string) => {
+    setRecurringDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
 
 
   useEffect(() => {
@@ -37,17 +44,17 @@ export default function AddTaskModal({
       setDescription(taskToEdit.description || "");
       setStatus(taskToEdit.status || defaultStatus);
       setCompletion(taskToEdit.completion || 0);
-        setDueDate( taskToEdit.due_date?.split( "T" )[ 0 ] || "" );
-        setCategory(taskToEdit.category || "");
-
+      setDueDate(taskToEdit.due_date?.split("T")[0] || "");
+      setCategory(taskToEdit.category || "");
+      setRecurringDays(taskToEdit.recurring_days || []);
     } else {
       setTitle("");
       setDescription("");
       setStatus(defaultStatus);
       setCompletion(0);
-        setDueDate( "" );
-        setCategory("");
-
+      setDueDate("");
+      setCategory("");
+      setRecurringDays([]);
     }
   }, [taskToEdit, defaultStatus, open]);
   
@@ -60,6 +67,7 @@ export default function AddTaskModal({
       completion,
       due_date: dueDate || null,
       category,
+      recurring_days: recurringDays.length ? recurringDays : null,
     };
 
     let result;
@@ -162,6 +170,32 @@ export default function AddTaskModal({
           <option value="Personal">Personal</option>
           <option value="Urgent">Urgent</option>
         </select>
+        <label className="text-sm font-medium mb-1 block">Repeat on</label>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ].map((day) => (
+            <button
+              type="button"
+              key={day}
+              className={`px-3 py-1 rounded-full text-sm border ${
+                recurringDays.includes(day.toLowerCase())
+                  ? "bg-black text-white"
+                  : "bg-white text-black"
+              }`}
+              onClick={() => toggleDay(day.toLowerCase())}
+            >
+              {day.slice(0, 3)}
+            </button>
+          ))}
+        </div>
+
         <label className="text-sm font-medium mt-2 opacity-40">Progress</label>
         <input
           type="number"

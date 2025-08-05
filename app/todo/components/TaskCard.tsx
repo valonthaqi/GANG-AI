@@ -47,8 +47,52 @@ export default function TaskCard({ task, onEdit, onDelete, dragProps }: Props) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3 shadow-sm">
       {/* Title */}
-      <div className="flex items-center justify-between mb-1">
-        <p className="font-semibold text-sm truncate">{task.title}</p>
+      <div className="flex justify-between items-start mb-1">
+        <div className="flex flex-col">
+          {task.recurring_days && task.recurring_days.length > 0 && (
+            <span className="block text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded w-max mb-1">
+              {(() => {
+                const days = task.recurring_days;
+                const allDays = [
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday",
+                ];
+                const weekdays = [
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                ];
+                const weekends = ["saturday", "sunday"];
+
+                const isEveryDay = allDays.every((day) => days.includes(day));
+                const isWeekdays =
+                  weekdays.every((day) => days.includes(day)) &&
+                  days.length === 5;
+                const isWeekends =
+                  weekends.every((day) => days.includes(day)) &&
+                  days.length === 2;
+
+                if (isEveryDay) return "Repeats every day";
+                if (isWeekdays) return "Repeats on weekdays";
+                if (isWeekends) return "Repeats on weekends";
+
+                return `Repeats on ${days
+                  .map((d) => d.slice(0, 3))
+                  .join(", ")}`;
+              })()}
+            </span>
+          )}
+
+          <p className="font-semibold text-sm truncate">{task.title}</p>
+        </div>
+
         <span title="Drag" {...dragProps}>
           <GripVertical
             className="cursor-grab text-gray-400 hover:text-black"
@@ -146,15 +190,15 @@ export default function TaskCard({ task, onEdit, onDelete, dragProps }: Props) {
                       </span>
                     );
                   }
-                                  
+
                   const isFuture = !isThisMonth && !isNextMonth && due > today;
-                    if (isFuture) {
-                        return (
-                        <span className="ml-2 text-[10px] font-semibold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">
-                            Future Due
-                        </span>
-                        );
-                    }
+                  if (isFuture) {
+                    return (
+                      <span className="ml-2 text-[10px] font-semibold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full">
+                        Future Due
+                      </span>
+                    );
+                  }
 
                   return null;
                 })()}

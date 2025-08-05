@@ -74,7 +74,6 @@ export default function BoardView({ tasks, setTasks }: BoardViewProps) {
       })
       .eq("id", taskId);
 
-
     // Update local state instantly
     setTasks((prev) =>
       prev.map((t) =>
@@ -88,6 +87,7 @@ export default function BoardView({ tasks, setTasks }: BoardViewProps) {
       )
     );      
   };
+    
 
   return (
     <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
