@@ -77,7 +77,7 @@ export default function TodoPage() {
   return (
     <div className="p-6">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-        {/* View Type Toggle */}
+        {/* Left side (View Toggles) */}
         <div className="flex space-x-2">
           {["Board", "To-do", "Table", "List"].map((view) => (
             <button
@@ -93,7 +93,7 @@ export default function TodoPage() {
           ))}
         </div>
 
-        {/* Right-side controls */}
+        {/* Right side (Filters + Add Task) */}
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
@@ -150,8 +150,17 @@ export default function TodoPage() {
           >
             Clear Filters
           </button>
+
+          {/* ✅ Moved Add Task button here */}
+          <button
+            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-900 text-sm"
+            onClick={() => setShowModal(true)}
+          >
+            ＋ Add Task
+          </button>
         </div>
       </div>
+
       <BoardView tasks={filteredTasks} setTasks={setTasks} />
       <AddTaskModal
         open={showModal}

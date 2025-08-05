@@ -23,8 +23,15 @@ export default function DraggableTaskCard({ task, onEdit, onDelete }: Props) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
+    <div ref={setNodeRef} style={style}>
+      {/* Pass drag props separately */}
+      <TaskCard
+        task={task}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        dragProps={{ ...attributes, ...listeners }} // 👈 pass drag props here
+      />
     </div>
   );
 }
+  

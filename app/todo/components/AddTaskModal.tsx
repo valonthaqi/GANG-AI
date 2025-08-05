@@ -28,7 +28,8 @@ export default function AddTaskModal({
   const [status, setStatus] = useState(defaultStatus);
   const [completion, setCompletion] = useState(0);
   const [dueDate, setDueDate] = useState("");
-  
+  const [category, setCategory] = useState("");
+
 
   useEffect(() => {
     if (taskToEdit) {
@@ -36,13 +37,17 @@ export default function AddTaskModal({
       setDescription(taskToEdit.description || "");
       setStatus(taskToEdit.status || defaultStatus);
       setCompletion(taskToEdit.completion || 0);
-      setDueDate(taskToEdit.due_date?.split("T")[0] || "");
+        setDueDate( taskToEdit.due_date?.split( "T" )[ 0 ] || "" );
+        setCategory(taskToEdit.category || "");
+
     } else {
       setTitle("");
       setDescription("");
       setStatus(defaultStatus);
       setCompletion(0);
-      setDueDate("");
+        setDueDate( "" );
+        setCategory("");
+
     }
   }, [taskToEdit, defaultStatus, open]);
   
@@ -54,6 +59,7 @@ export default function AddTaskModal({
       status,
       completion,
       due_date: dueDate || null,
+      category,
     };
 
     let result;
@@ -122,6 +128,7 @@ export default function AddTaskModal({
           onChange={(e) => setDescription(e.target.value)}
         />
 
+        <label className="text-sm font-medium mt-2 opacity-40">Due Date</label>
         <input
           type="date"
           className="w-full mb-3 p-2 border rounded"
@@ -129,6 +136,7 @@ export default function AddTaskModal({
           onChange={(e) => setDueDate(e.target.value)}
         />
 
+        <label className="text-sm font-medium mt-2 opacity-40">Table</label>
         <select
           value={status}
           onChange={(e) =>
@@ -143,7 +151,18 @@ export default function AddTaskModal({
           <option value="done">Done</option>
           <option value="on_hold">On Hold</option>
         </select>
-
+        <label className="text-sm font-medium mt-2 opacity-40">Category</label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full p-2 border rounded mb-4"
+        >
+          <option value="">Select category</option>
+          <option value="Work">Work</option>
+          <option value="Personal">Personal</option>
+          <option value="Urgent">Urgent</option>
+        </select>
+        <label className="text-sm font-medium mt-2 opacity-40">Progress</label>
         <input
           type="number"
           min={0}
@@ -165,7 +184,7 @@ export default function AddTaskModal({
             onClick={handleSubmit}
             className="text-sm bg-black text-white px-4 py-2 rounded"
           >
-            Add Task
+            {taskToEdit ? "Edit Task" : "Add Task"}
           </button>
         </div>
       </div>

@@ -113,7 +113,8 @@ export default function BoardView({ tasks, setTasks }: BoardViewProps) {
                 }}
                 onDelete={async (id) => {
                   await supabase.from("todo_tasks").delete().eq("id", id);
-                  window.location.reload();
+
+                  setTasks((prev) => prev.filter((t) => t.id !== id));
                 }}
               />
             ))}
