@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Home, MessageSquare, Trash2, Pencil } from "lucide-react";
+import { Home, MessageSquare, Trash2, Pencil, ListTodo } from "lucide-react";
 import { fetchConversations, deleteConversation, updateConversationTitle } from "@/app/utils/supabase/conversations"; 
 import Image from "next/image";
 
@@ -61,6 +61,13 @@ export default function Sidebar({ refreshSignal }: Props) {
           title="Your Conversations"
         >
           <MessageSquare size={20} />
+        </button>
+        <button
+          onClick={() => router.push("/todo")}
+          className="hover:text-black text-gray-700"
+          title="To-Do List"
+        >
+          <ListTodo size={20} />
         </button>
 
         {showDropdown && convos.length > 0 && (
@@ -187,8 +194,8 @@ export default function Sidebar({ refreshSignal }: Props) {
           <Image
             src="/logo.png"
             alt="Logo"
-            width={ 32 }
-            height={ 32 }
+            width={32}
+            height={32}
             className="w-8 h-8 object-contain rounded-4xl"
           ></Image>
         </button>
